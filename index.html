@@ -1,55 +1,39 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: #ffffff;
-            color: #000000;
-            padding: 20px;
-            text-align: center;
-        }
-        .btn {
-            display: inline-block;
-            width: 80%;
-            padding: 15px;
-            margin: 10px 0;
-            background-color: #0088cc;
-            color: #ffffff;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <h2>⚽ Test Schedina Mini App</h2>
-    <p>Seleziona un segno per testare:</p>
+const tg = window.Telegram.WebApp;
+tg.ready();
 
-    <button class="btn" onclick="invia('1')">Gioca 1</button>
-    <button class="btn" onclick="invia('X')">Gioca X</button>
-    <button class="btn" onclick="invia('2')">Gioca 2</button>
+// Legge il parametro 'partite' dall'URL
+const urlParams = new URLSearchParams(window.location.search);
+const partiteRaw = urlParams.get('partite');
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
+// Decodifica l'array di partite
+let listaPartite = [];
+try {
+    listaPartite = JSON.parse(decodeURIComponent(partiteRaw));
+} catch (e) {
+    listaPartite = ["Partita 1", "Partita 2"]; // Fallback di test
+}
 
-        function invia(esito) {
-            alert("Cliccato: " + esito);
-            try {
-                const dati = JSON.stringify({ partita: "Anaune vs Nonsole", pronostico: esito });
-                tg.sendData(dati);
-                tg.close();
-            } catch (e) {
-                alert("Errore sendData: " + e.message);
-            }
-        }
-    </script>
-</body>
-</html>
+// Struttura per salvare le giocate dell'utente: { "Inter vs Milan": "1", "Juventus vs Roma": "X" }
+let pronosticiScelti = {};
+
+function selezionaEsito(partita, esito) {
+    pronosticiScelti[partita] = esito;
+    console.log("Stato schedina:", pronosticiScelti);
+}
+
+function inviaSchedinaCompleta() {
+    // Controlla che l'utente abbia giocato tutte le partite
+    if (Object.keys(pronosticiScelti).length < listaPartite.length) {
+        alert("Completa i pronostici per tutte le partite prima di inviare!");
+        return;
+    }
+
+    // Invia il pacchetto completo a Python
+    const payload = JSON.stringify({
+        tipo: "schedina_completa",
+        giocate: pronosticiScelti
+    });
+
+    tg.sendData(payload);
+    tg.close();
+}
