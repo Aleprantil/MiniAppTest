@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schedina Mini App</title>
-    <!-- Script ufficiale di Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -56,80 +55,93 @@
             cursor: pointer;
             margin-top: 10px;
         }
+        /* Stile del messaggio "Già giocato" */
+        .messaggio-blocco {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
 
     <h2>⚽ Schedina del Giorno</h2>
     
-    <!-- Qui verranno inserite dinamicamente le partite -->
-    <div id="contenitore-partite"></div>
+    <!-- Div per il messaggio di avviso -->
+    <div id="avviso-gia-giocato" style="display: none;" class="messaggio-blocco">
+        ⚠️ Hai già effettuato le scommesse per questa giornata!
+    </div>
 
-    <!-- Bottone finale di invio -->
-    <button id="btn-invia" onclick="inviaSchedinaCompleta()">Invia Schedina</button>
+    <!-- Contenitore partite e bottone invia -->
+    <div id="sezione-schedina">
+        <div id="contenitore-partite"></div>
+        <button id="btn-invia" onclick="inviaSchedinaCompleta()">Invia Schedina</button>
+    </div>
 
-    <!-- ⚠️ IL CODICE JAVASCRIPT VA DENTRO QUESTO TAG <script> -->
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
 
-        // 1. Legge il parametro 'partite' dall'URL
         const urlParams = new URLSearchParams(window.location.search);
+        const giaGiocato = urlParams.get('giocato') === '1';
         const partiteRaw = urlParams.get('partite');
 
-        let listaPartite = [];
-        try {
-            listaPartite = JSON.parse(decodeURIComponent(partiteRaw));
-        } catch (e) {
-            // Partite di prova se si apre la pagina senza URL parametrizzato
-            listaPartite = ["Squadra A vs Squadra B", "Squadra C vs Squadra D"];
-        }
-
-        let pronosticiScelti = {};
-
-        // 2. Genera l'HTML per ogni partita nell'array
-        const contenitore = document.getElementById('contenitore-partite');
-        listaPartite.forEach((partita, index) => {
-            const card = document.createElement('div');
-            card.className = 'card-partita';
-            card.innerHTML = `
-                <div class="titolo-partita">${partita}</div>
-                <div class="bottoni-esito">
-                    <button class="btn" onclick="selezionaEsito('${partita}', '1', this)">1</button>
-                    <button class="btn" onclick="selezionaEsito('${partita}', 'X', this)">X</button>
-                    <button class="btn" onclick="selezionaEsito('${partita}', '2', this)">2</button>
-                </div>
-            `;
-            contenitore.appendChild(card);
-        });
-
-        // 3. Gestisce il click sui pulsanti 1, X, 2
-        function selezionaEsito(partita, esito, bottone) {
-            pronosticiScelti[partita] = esito;
-            
-            // Rimuove lo stile "selezionato" dagli altri bottoni dello stesso blocco
-            const parent = bottone.parentElement;
-            const bottoni = parent.querySelectorAll('.btn');
-            bottoni.forEach(b => b.classList.remove('selezionato'));
-            
-            // Evidenzia il bottone cliccato
-            bottone.classList.add('selezionato');
-        }
-
-        // 4. Invia tutti i dati a Telegram
-        function inviaSchedinaCompleta() {
-            if (Object.keys(pronosticiScelti).length < listaPartite.length) {
-                alert("Seleziona un esito per tutte le partite prima di inviare!");
-                return;
+        // Se l'utente ha già giocato, mostriamo l'avviso e nascondiamo la schedina
+        if (giaGiocato) {
+            document.getElementById('avviso-gia-giocato').style.display = 'block';
+            document.getElementById('sezione-schedina').style.display = 'none';
+        } else {
+            // Altrimenti carichiamo la schedina normalmente
+            let listaPartite = [];
+            try {
+                listaPartite = JSON.parse(decodeURIComponent(partiteRaw));
+            } catch (e) {
+                listaPartite = ["Partita 1", "Partita 2"];
             }
 
-            const payload = JSON.stringify({
-                tipo: "schedina_completa",
-                giocate: pronosticiScelti
+            let pronosticiScelti = {};
+
+            const contenitore = document.getElementById('contenitore-partite');
+            listaPartite.forEach((partita) => {
+                const card = document.createElement('div');
+                card.className = 'card-partita';
+                card.innerHTML = `
+                    <div class="titolo-partita">${partita}</div>
+                    <div class="bottoni-esito">
+                        <button class="btn" onclick="selezionaEsito('${partita}', '1', this)">1</button>
+                        <button class="btn" onclick="selezionaEsito('${partita}', 'X', this)">X</button>
+                        <button class="btn" onclick="selezionaEsito('${partita}', '2', this)">2</button>
+                    </div>
+                `;
+                contenitore.appendChild(card);
             });
 
-            tg.sendData(payload);
-            tg.close();
+            function selezionaEsito(partita, esito, bottone) {
+                pronosticiScelti[partita] = esito;
+                const parent = bottone.parentElement;
+                parent.querySelectorAll('.btn').forEach(b => b.classList.remove('selezionato'));
+                bottone.classList.add('selezionato');
+            }
+
+            function inviaSchedinaCompleta() {
+                if (Object.keys(pronosticiScelti).length < listaPartite.length) {
+                    alert("Seleziona un esito per tutte le partite prima di inviare!");
+                    return;
+                }
+
+                const payload = JSON.stringify({
+                    tipo: "schedina_completa",
+                    giocate: pronosticiScelti
+                });
+
+                tg.sendData(payload);
+                tg.close();
+            }
         }
     </script>
 </body>
