@@ -1,39 +1,136 @@
-const tg = window.Telegram.WebApp;
-tg.ready();
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedina Mini App</title>
+    <!-- Script ufficiale di Telegram -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 15px;
+            margin: 0;
+        }
+        .card-partita {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            background: rgba(0,0,0,0.02);
+        }
+        .titolo-partita {
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .bottoni-esito {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #0088cc;
+            background: #fff;
+            color: #0088cc;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn.selezionato {
+            background: #0088cc;
+            color: #fff;
+        }
+        #btn-invia {
+            width: 100%;
+            padding: 15px;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
 
-// Legge il parametro 'partite' dall'URL
-const urlParams = new URLSearchParams(window.location.search);
-const partiteRaw = urlParams.get('partite');
+    <h2>⚽ Schedina del Giorno</h2>
+    
+    <!-- Qui verranno inserite dinamicamente le partite -->
+    <div id="contenitore-partite"></div>
 
-// Decodifica l'array di partite
-let listaPartite = [];
-try {
-    listaPartite = JSON.parse(decodeURIComponent(partiteRaw));
-} catch (e) {
-    listaPartite = ["Partita 1", "Partita 2"]; // Fallback di test
-}
+    <!-- Bottone finale di invio -->
+    <button id="btn-invia" onclick="inviaSchedinaCompleta()">Invia Schedina</button>
 
-// Struttura per salvare le giocate dell'utente: { "Inter vs Milan": "1", "Juventus vs Roma": "X" }
-let pronosticiScelti = {};
+    <!-- ⚠️ IL CODICE JAVASCRIPT VA DENTRO QUESTO TAG <script> -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
 
-function selezionaEsito(partita, esito) {
-    pronosticiScelti[partita] = esito;
-    console.log("Stato schedina:", pronosticiScelti);
-}
+        // 1. Legge il parametro 'partite' dall'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const partiteRaw = urlParams.get('partite');
 
-function inviaSchedinaCompleta() {
-    // Controlla che l'utente abbia giocato tutte le partite
-    if (Object.keys(pronosticiScelti).length < listaPartite.length) {
-        alert("Completa i pronostici per tutte le partite prima di inviare!");
-        return;
-    }
+        let listaPartite = [];
+        try {
+            listaPartite = JSON.parse(decodeURIComponent(partiteRaw));
+        } catch (e) {
+            // Partite di prova se si apre la pagina senza URL parametrizzato
+            listaPartite = ["Squadra A vs Squadra B", "Squadra C vs Squadra D"];
+        }
 
-    // Invia il pacchetto completo a Python
-    const payload = JSON.stringify({
-        tipo: "schedina_completa",
-        giocate: pronosticiScelti
-    });
+        let pronosticiScelti = {};
 
-    tg.sendData(payload);
-    tg.close();
-}
+        // 2. Genera l'HTML per ogni partita nell'array
+        const contenitore = document.getElementById('contenitore-partite');
+        listaPartite.forEach((partita, index) => {
+            const card = document.createElement('div');
+            card.className = 'card-partita';
+            card.innerHTML = `
+                <div class="titolo-partita">${partita}</div>
+                <div class="bottoni-esito">
+                    <button class="btn" onclick="selezionaEsito('${partita}', '1', this)">1</button>
+                    <button class="btn" onclick="selezionaEsito('${partita}', 'X', this)">X</button>
+                    <button class="btn" onclick="selezionaEsito('${partita}', '2', this)">2</button>
+                </div>
+            `;
+            contenitore.appendChild(card);
+        });
+
+        // 3. Gestisce il click sui pulsanti 1, X, 2
+        function selezionaEsito(partita, esito, bottone) {
+            pronosticiScelti[partita] = esito;
+            
+            // Rimuove lo stile "selezionato" dagli altri bottoni dello stesso blocco
+            const parent = bottone.parentElement;
+            const bottoni = parent.querySelectorAll('.btn');
+            bottoni.forEach(b => b.classList.remove('selezionato'));
+            
+            // Evidenzia il bottone cliccato
+            bottone.classList.add('selezionato');
+        }
+
+        // 4. Invia tutti i dati a Telegram
+        function inviaSchedinaCompleta() {
+            if (Object.keys(pronosticiScelti).length < listaPartite.length) {
+                alert("Seleziona un esito per tutte le partite prima di inviare!");
+                return;
+            }
+
+            const payload = JSON.stringify({
+                tipo: "schedina_completa",
+                giocate: pronosticiScelti
+            });
+
+            tg.sendData(payload);
+            tg.close();
+        }
+    </script>
+</body>
+</html>
