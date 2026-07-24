@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schedina Mini App Test</title>
+    <!-- Carica la libreria ufficiale Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -27,14 +28,17 @@
         }
         button {
             flex: 1;
-            padding: 12px;
+            padding: 15px;
             border: none;
             border-radius: 8px;
             background-color: var(--tg-theme-button-color, #0088cc);
             color: var(--tg-theme-button-text-color, #ffffff);
             font-weight: bold;
-            font-size: 16px;
+            font-size: 18px;
             cursor: pointer;
+        }
+        button:active {
+            opacity: 0.7;
         }
     </style>
 </head>
@@ -53,23 +57,41 @@
     </div>
 
     <script>
+        // Inizializza l'oggetto Telegram WebApp
         const tg = window.Telegram.WebApp;
+        tg.ready();
         tg.expand();
 
+        // Mostra il nome dell'utente
         const user = tg.initDataUnsafe?.user;
-        if (user) {
+        if (user && user.first_name) {
             document.getElementById('user-name').innerText = user.first_name;
+        } else {
+            document.getElementById('user-name').innerText = "Utente Telegram";
         }
 
+        // Funzione chiamata al click dei pulsanti
         function inviaPronostico(scelta) {
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('medium');
+            try {
+                // Vibrazione leggera sul telefono
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('medium');
+                }
+
+                // Dati da inviare al Python
+                const payload = {
+                    partita: "Anaune vs Nonsole",
+                    pronostico: scelta
+                };
+
+                // Invia i dati al bot Telegram
+                tg.sendData(JSON.stringify(payload));
+                
+                // Forza la chiusura della finestra
+                tg.close();
+            } catch (err) {
+                alert("Errore invio: " + err.message);
             }
-            const dati = {
-                partita: "Anaune vs Nonsole",
-                pronostico: scelta
-            };
-            tg.sendData(JSON.stringify(dati));
         }
     </script>
 </body>
