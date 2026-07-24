@@ -71,8 +71,11 @@
         }
 
         // Funzione chiamata al click dei pulsanti
-        function inviaPronostico(scelta) {
+       function inviaPronostico(scelta) {
             try {
+                // 1. POP-UP DI TEST: Mostra una finestra di avviso sul telefono
+                alert("Stai inviando il pronostico: " + scelta);
+
                 // Vibrazione leggera sul telefono
                 if (tg.HapticFeedback) {
                     tg.HapticFeedback.impactOccurred('medium');
@@ -89,6 +92,10 @@
                 
                 // Forza la chiusura della finestra
                 tg.close();
+            } catch (err) {
+                alert("Errore invio: " + err.message);
+            }
+        }
             } catch (err) {
                 alert("Errore invio: " + err.message);
             }
