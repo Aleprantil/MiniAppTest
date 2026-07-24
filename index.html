@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schedina Mini App Test</title>
-    <!-- Carica la libreria ufficiale Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -37,9 +36,6 @@
             font-size: 18px;
             cursor: pointer;
         }
-        button:active {
-            opacity: 0.7;
-        }
     </style>
 </head>
 <body>
@@ -57,12 +53,10 @@
     </div>
 
     <script>
-        // Inizializza l'oggetto Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // Mostra il nome dell'utente
         const user = tg.initDataUnsafe?.user;
         if (user && user.first_name) {
             document.getElementById('user-name').innerText = user.first_name;
@@ -70,34 +64,22 @@
             document.getElementById('user-name').innerText = "Utente Telegram";
         }
 
-        // Funzione chiamata al click dei pulsanti
-       function inviaPronostico(scelta) {
+        function inviaPronostico(scelta) {
             try {
-                // 1. POP-UP DI TEST: Mostra una finestra di avviso sul telefono
-                alert("Stai inviando il pronostico: " + scelta);
-
-                // Vibrazione leggera sul telefono
-                if (tg.HapticFeedback) {
-                    tg.HapticFeedback.impactOccurred('medium');
-                }
-
-                // Dati da inviare al Python
+                // Prepara i dati
                 const payload = {
                     partita: "Anaune vs Nonsole",
                     pronostico: scelta
                 };
 
-                // Invia i dati al bot Telegram
+                // Tenta l'invio
                 tg.sendData(JSON.stringify(payload));
                 
-                // Forza la chiusura della finestra
+                // Se arriva qui, l'invio è riuscito -> Chiude l'app
                 tg.close();
             } catch (err) {
-                alert("Errore invio: " + err.message);
-            }
-        }
-            } catch (err) {
-                alert("Errore invio: " + err.message);
+                // Se c'è un errore, lo MOSTRA sullo schermo del telefono!
+                alert("ERRORE TELEGRAM: " + err.message);
             }
         }
     </script>
