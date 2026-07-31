@@ -1,148 +1,486 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Schedina Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            padding: 15px;
-            margin: 0;
-        }
-        .card-partita {
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 15px;
-            background: rgba(0,0,0,0.02);
-        }
-        .titolo-partita {
-            font-weight: bold;
-            margin-bottom: 8px;
-            text-align: center;
-        }
-        .bottoni-esito {
-            display: flex;
-            gap: 10px;
-        }
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #0088cc;
-            background: #fff;
-            color: #0088cc;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .btn.selezionato {
-            background: #0088cc;
-            color: #fff;
-        }
-        #btn-invia {
-            width: 100%;
-            padding: 15px;
-            background: #28a745;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        /* Stile del messaggio "Già giocato" */
-        .messaggio-blocco {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-            margin-top: 20px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>La Schedina</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --verde-campo:#0F3D2E;
+    --verde-ombra:#092720;
+    --carta:#F1DCC9;
+    --carta-bordo:#e0c3a6;
+    --inchiostro:#20302B;
+    --timbro:#B3222B;
+    --oro:#D9A441;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(217,164,65,0.20), transparent 55%),
+      linear-gradient(180deg, var(--verde-campo), var(--verde-ombra));
+    font-family:'Inter', sans-serif;
+    color: var(--inchiostro);
+    padding: 22px 16px 48px;
+  }
+  .app{ max-width:440px; margin:0 auto; }
+
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-size:12px;
+    color: rgba(241,220,201,0.78);
+    margin:0 0 6px;
+  }
+  h1.titolo{
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    color:#F6EFE3;
+    font-size:26px;
+    line-height:1.15;
+    margin:0 0 20px;
+  }
+  p.sottotitolo{
+    font-family:'Inter', sans-serif;
+    color: rgba(241,220,201,0.85);
+    font-size:14px;
+    margin:-12px 0 20px;
+  }
+
+  .screen{ display:none; }
+  .screen.active{ display:block; animation: fadeIn .35s ease both; }
+  @keyframes fadeIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+
+  /* ---------- Mode cards ---------- */
+  .mode-card{
+    background: var(--carta);
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:14px;
+    border: 2px solid var(--carta-bordo);
+    cursor:pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+    box-shadow: 0 6px 0 rgba(9,39,32,0.35);
+  }
+  .mode-card:active{ transform: translateY(4px); box-shadow: 0 2px 0 rgba(9,39,32,0.35); }
+  .mode-card h3{
+    font-family:'Oswald', sans-serif;
+    text-transform:uppercase;
+    font-size:19px;
+    margin:0 0 6px;
+    letter-spacing:.02em;
+  }
+  .mode-card p{ margin:0; font-size:13.5px; color:#4b463c; line-height:1.45; }
+
+  .nota, .nota-fallback{
+    font-size:12.5px;
+    color: rgba(241,220,201,0.72);
+    text-align:center;
+    margin-top:18px;
+    line-height:1.5;
+  }
+
+  /* ---------- Ticket ---------- */
+  .ticket-topbar{
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:12px;
+    min-height:28px;
+  }
+  .link-indietro{
+    background:none; border:none; color: rgba(241,220,201,0.85);
+    font-family:'Inter', sans-serif; font-size:13.5px; font-weight:600;
+    cursor:pointer; padding:4px 0;
+  }
+  .badge-modalita{
+    font-family:'Space Mono', monospace;
+    font-size:11.5px;
+    background: rgba(217,164,65,0.18);
+    color: var(--oro);
+    border:1px solid rgba(217,164,65,0.45);
+    padding:4px 9px;
+    border-radius:999px;
+  }
+  .contatore{
+    margin-left:auto;
+    font-family:'Space Mono', monospace;
+    font-size:12.5px;
+    color: rgba(241,220,201,0.8);
+  }
+
+  .ticket{
+    background: var(--carta);
+    border-radius:16px;
+    padding: 10px 0;
+    position:relative;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+  }
+  .ticket::before, .ticket::after{
+    content:"";
+    position:absolute; left:10px; right:10px; height:12px;
+    background-image: radial-gradient(circle, var(--verde-ombra) 4.5px, transparent 5px);
+    background-size: 18px 12px; background-position: 3px center;
+    opacity:.28;
+  }
+  .ticket::before{ top:-6px; }
+  .ticket::after{ bottom:-6px; }
+
+  .riga-partita{
+    padding: 13px 18px;
+    border-bottom: 1px dashed rgba(32,48,43,0.2);
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .riga-partita:last-child{ border-bottom:none; }
+  .riga-partita .num{
+    font-family:'Space Mono', monospace;
+    font-size:12px; font-weight:700;
+    color: var(--timbro);
+    min-width:20px;
+  }
+  .riga-partita .nome{
+    font-size:14.5px; font-weight:600; line-height:1.3;
+    flex:1 1 140px;
+  }
+  .pick-group{ display:flex; gap:7px; flex:0 0 auto; }
+  .pick-btn{
+    font-family:'Oswald', sans-serif;
+    font-size:15px;
+    width:40px; height:38px;
+    border-radius:9px;
+    border:2px solid rgba(32,48,43,0.22);
+    background: rgba(255,255,255,0.45);
+    color: var(--inchiostro);
+    cursor:pointer;
+    transition: transform .1s ease, background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .pick-btn:active{ transform: scale(.9); }
+  .pick-btn.selezionato{
+    background: var(--verde-campo);
+    border-color: var(--verde-campo);
+    color:#F6EFE3;
+  }
+
+  .esito-badge{
+    font-family:'Oswald', sans-serif;
+    font-size:14px;
+    width:34px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:8px;
+    background: var(--verde-campo);
+    color:#F6EFE3;
+  }
+
+  .btn-invia-fallback{
+    display:block; width:100%;
+    margin-top:16px;
+    padding:14px;
+    border:none; border-radius:12px;
+    font-family:'Oswald', sans-serif;
+    font-size:15px; letter-spacing:.03em; text-transform:uppercase;
+    background: var(--oro); color:#2b1e08;
+    cursor:pointer;
+  }
+  .btn-invia-fallback:disabled{ opacity:.5; cursor:default; }
+
+  /* ---------- Done / Already screens ---------- */
+  .ticket-recap{ position:relative; }
+  .stamp{
+    position:absolute;
+    top:38%; left:50%;
+    width:150px; height:150px;
+    transform: translate(-50%,-50%) rotate(-11deg);
+    border:5px double var(--timbro);
+    border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color: var(--timbro);
+    font-family:'Oswald', sans-serif;
+    text-transform:uppercase;
+    text-align:center;
+    mix-blend-mode:multiply;
+    pointer-events:none;
+    opacity:0;
+  }
+  .stamp span{ display:block; }
+  .stamp .stamp-titolo{ font-size:20px; font-weight:700; letter-spacing:.05em; }
+  .stamp .stamp-check{ font-size:11px; letter-spacing:.08em; margin-top:2px; }
+  .stamp.animare{ animation: timbroSlam .55s cubic-bezier(.2,.8,.3,1.2) forwards; }
+  @keyframes timbroSlam{
+    0%{ opacity:0; transform: translate(-50%,-50%) scale(2.4) rotate(-11deg); }
+    55%{ opacity:1; transform: translate(-50%,-50%) scale(.94) rotate(-11deg); }
+    78%{ transform: translate(-50%,-50%) scale(1.04) rotate(-11deg); }
+    100%{ opacity:1; transform: translate(-50%,-50%) scale(1) rotate(-11deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .screen.active{ animation:none; }
+    .stamp.animare{ animation:none; opacity:1; }
+  }
+
+  :focus-visible{ outline: 3px solid var(--oro); outline-offset:2px; }
+</style>
 </head>
 <body>
+  <div class="app">
 
-    <h2>⚽ Schedina del Giorno</h2>
-    
-    <!-- Div per il messaggio di avviso -->
-    <div id="avviso-gia-giocato" style="display: none;" class="messaggio-blocco">
-        ⚠️ Hai già effettuato le scommesse per questa giornata!
-    </div>
+    <!-- SCHERMATA 1: scelta modalità -->
+    <section id="screen-mode" class="screen">
+      <p class="eyebrow" id="eyebrow-mode">Schedina</p>
+      <h1 class="titolo">Scegli la modalità</h1>
 
-    <!-- Contenitore partite e bottone invia -->
-    <div id="sezione-schedina">
-        <div id="contenitore-partite"></div>
-        <button id="btn-invia" onclick="inviaSchedinaCompleta()">Invia Schedina</button>
-    </div>
+      <div class="mode-card" data-modalita="modalita_normale" tabindex="0" role="button">
+        <h3>🎯 Modalità Normale</h3>
+        <p>Vinci se indovini almeno il 55% delle partite. Tra chi supera la soglia, vince chi ne indovina di più.</p>
+      </div>
+      <div class="mode-card" data-modalita="modalita_0" tabindex="0" role="button">
+        <h3>💀 Modalità Zero</h3>
+        <p>Vinci se sbagli <strong>tutte</strong> le partite. Un pronostico alla rovescia: zero indovinate, premio assicurato.</p>
+      </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
+      <p class="nota-fallback" id="nota-no-telegram" style="display:none;">
+        Anteprima fuori da Telegram: puoi provare la schedina, ma per giocare davvero apri questa pagina dal bottone del bot.
+      </p>
+    </section>
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const giaGiocato = urlParams.get('giocato') === '1';
-        const partiteRaw = urlParams.get('partite');
+    <!-- SCHERMATA 2: compilazione schedina -->
+    <section id="screen-ticket" class="screen">
+      <div class="ticket-topbar">
+        <button class="link-indietro" id="btn-indietro" type="button">← cambia modalità</button>
+        <span class="badge-modalita" id="badge-modalita"></span>
+        <span class="contatore" id="contatore-scelte"></span>
+      </div>
+      <div class="ticket" id="lista-partite"></div>
+      <button class="btn-invia-fallback" id="btn-invia-fallback" type="button" disabled>Scegli tutte le partite</button>
+    </section>
 
-        // Se l'utente ha già giocato, mostriamo l'avviso e nascondiamo la schedina
-        if (giaGiocato) {
-            document.getElementById('avviso-gia-giocato').style.display = 'block';
-            document.getElementById('sezione-schedina').style.display = 'none';
-        } else {
-            // Altrimenti carichiamo la schedina normalmente
-            let listaPartite = [];
-            try {
-                listaPartite = JSON.parse(decodeURIComponent(partiteRaw));
-            } catch (e) {
-                listaPartite = ["Partita 1", "Partita 2"];
-            }
+    <!-- SCHERMATA 3: conferma invio -->
+    <section id="screen-done" class="screen">
+      <p class="eyebrow">Schedina inviata</p>
+      <h1 class="titolo">In bocca al lupo 🍀</h1>
+      <div class="ticket-recap">
+        <div class="ticket" id="recap-done"></div>
+        <div class="stamp" id="stamp-done">
+          <span class="stamp-titolo">Giocata</span>
+          <span class="stamp-check">✔ confermata</span>
+        </div>
+      </div>
+      <p class="nota">Riceverai i risultati direttamente in chat appena l'admin li pubblica.</p>
+    </section>
 
-            let pronosticiScelti = {};
+    <!-- SCHERMATA 4: utente ha già giocato questa settimana -->
+    <section id="screen-already" class="screen">
+      <p class="eyebrow">Questa settimana</p>
+      <h1 class="titolo">Hai già giocato</h1>
+      <div class="ticket-recap">
+        <div class="ticket" id="recap-already"></div>
+        <div class="stamp" id="stamp-already">
+          <span class="stamp-titolo">Giocata</span>
+          <span class="stamp-check">✔ confermata</span>
+        </div>
+      </div>
+      <p class="nota">Non puoi inviare una seconda schedina questa settimana. Attendi i risultati!</p>
+    </section>
 
-            const contenitore = document.getElementById('contenitore-partite');
-            listaPartite.forEach((partita) => {
-                const card = document.createElement('div');
-                card.className = 'card-partita';
-                card.innerHTML = `
-                    <div class="titolo-partita">${partita}</div>
-                    <div class="bottoni-esito">
-                        <button class="btn" onclick="selezionaEsito('${partita}', '1', this)">1</button>
-                        <button class="btn" onclick="selezionaEsito('${partita}', 'X', this)">X</button>
-                        <button class="btn" onclick="selezionaEsito('${partita}', '2', this)">2</button>
-                    </div>
-                `;
-                contenitore.appendChild(card);
-            });
+  </div>
 
-            function selezionaEsito(partita, esito, bottone) {
-                pronosticiScelti[partita] = esito;
-                const parent = bottone.parentElement;
-                parent.querySelectorAll('.btn').forEach(b => b.classList.remove('selezionato'));
-                bottone.classList.add('selezionato');
-            }
+<script>
+(function(){
+  const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+  if(tg){
+    tg.ready();
+    tg.expand();
+    try{
+      tg.setHeaderColor('#0F3D2E');
+      tg.setBackgroundColor('#0F3D2E');
+    }catch(e){ /* client Telegram meno recente: si ignora */ }
+  }
 
-            function inviaSchedinaCompleta() {
-                if (Object.keys(pronosticiScelti).length < listaPartite.length) {
-                    alert("Seleziona un esito per tutte le partite prima di inviare!");
-                    return;
-                }
+  // ---------- Lettura parametri passati dal bot ----------
+  const params = new URLSearchParams(window.location.search);
 
-                const payload = JSON.stringify({
-                    tipo: "schedina_completa",
-                    giocate: pronosticiScelti
-                });
+  function leggiJSON(nome, fallback){
+    const raw = params.get(nome);
+    if(!raw) return fallback;
+    try{ return JSON.parse(raw); } catch(e){ return fallback; }
+  }
 
-                tg.sendData(payload);
-                tg.close();
-            }
-        }
-    </script>
+  const PARTITE = leggiJSON('partite', [
+    'Squadra A - Squadra B',
+    'Squadra C - Squadra D',
+    'Squadra E - Squadra F'
+  ]);
+  const GIA_GIOCATO = params.get('giocato') === '1';
+  const SCELTE_PRECEDENTI = leggiJSON('scelte', []);
+  const MODALITA_PRECEDENTE = params.get('modalita') || 'modalita_normale';
+
+  const ETICHETTE_MODALITA = {
+    modalita_normale: '🎯 Normale',
+    modalita_0: '💀 Zero'
+  };
+
+  // ---------- Stato ----------
+  let modalita = null;
+  let scelte = {}; // { nomePartita: '1' | 'X' | '2' }
+
+  // ---------- Riferimenti schermate ----------
+  const screens = {
+    mode: document.getElementById('screen-mode'),
+    ticket: document.getElementById('screen-ticket'),
+    done: document.getElementById('screen-done'),
+    already: document.getElementById('screen-already'),
+  };
+  function mostraSchermata(nome){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[nome].classList.add('active');
+  }
+
+  document.getElementById('eyebrow-mode').textContent = `Schedina · ${PARTITE.length} incontri`;
+  if(!tg){ document.getElementById('nota-no-telegram').style.display = 'block'; }
+
+  // ---------- Costruzione riepilogo (usato da "inviata" e "già giocata") ----------
+  function costruisciRiepilogo(container, partiteList, mappaEsiti){
+    container.innerHTML = partiteList.map((nome, i) => `
+      <div class="riga-partita">
+        <div class="num">${String(i+1).padStart(2,'0')}</div>
+        <div class="nome">${escapeHtml(nome)}</div>
+        <div class="esito-badge">${escapeHtml(mappaEsiti[nome] ?? mappaEsiti[i] ?? '-')}</div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[c]));
+  }
+
+  function animaTimbro(elId){
+    const stamp = document.getElementById(elId);
+    requestAnimationFrame(() => stamp.classList.add('animare'));
+  }
+
+  // ---------- Percorso: utente ha già giocato questa settimana ----------
+  if(GIA_GIOCATO){
+    const mappa = {};
+    PARTITE.forEach((nome, i) => { mappa[nome] = SCELTE_PRECEDENTI[i] ?? '-'; });
+    costruisciRiepilogo(document.getElementById('recap-already'), PARTITE, mappa);
+    document.querySelector('#screen-already .eyebrow').textContent =
+      `Questa settimana · ${ETICHETTE_MODALITA[MODALITA_PRECEDENTE] || 'Normale'}`;
+    mostraSchermata('already');
+    animaTimbro('stamp-already');
+    if(tg){ tg.MainButton.hide(); tg.BackButton.hide(); }
+    return; // nessun'altra interazione necessaria
+  }
+
+  // ---------- Percorso normale: scelta modalità + compilazione schedina ----------
+  mostraSchermata('mode');
+
+  document.querySelectorAll('.mode-card').forEach(card => {
+    function seleziona(){
+      modalita = card.dataset.modalita;
+      if(tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      renderTicket();
+      mostraSchermata('ticket');
+      document.getElementById('badge-modalita').textContent = ETICHETTE_MODALITA[modalita];
+      if(tg){
+        tg.BackButton.show();
+        tg.MainButton.show();
+      }
+      aggiornaStatoInvio();
+    }
+    card.addEventListener('click', seleziona);
+    card.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' ') seleziona(); });
+  });
+
+  function tornaAModalita(){
+    mostraSchermata('mode');
+    if(tg){ tg.BackButton.hide(); tg.MainButton.hide(); }
+  }
+  document.getElementById('btn-indietro').addEventListener('click', tornaAModalita);
+  if(tg) tg.BackButton.onClick(tornaAModalita);
+
+  function renderTicket(){
+    const lista = document.getElementById('lista-partite');
+    lista.innerHTML = PARTITE.map((nome, i) => `
+      <div class="riga-partita" data-partita="${escapeHtml(nome)}">
+        <div class="num">${String(i+1).padStart(2,'0')}</div>
+        <div class="nome">${escapeHtml(nome)}</div>
+        <div class="pick-group">
+          <button class="pick-btn" data-val="1" type="button">1</button>
+          <button class="pick-btn" data-val="X" type="button">X</button>
+          <button class="pick-btn" data-val="2" type="button">2</button>
+        </div>
+      </div>
+    `).join('');
+
+    lista.querySelectorAll('.riga-partita').forEach(riga => {
+      const nomePartita = riga.dataset.partita;
+      riga.querySelectorAll('.pick-btn').forEach(btn => {
+        // ripristina eventuale scelta già fatta (se l'utente torna indietro a cambiare modalità)
+        if(scelte[nomePartita] === btn.dataset.val) btn.classList.add('selezionato');
+
+        btn.addEventListener('click', () => {
+          if(tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+          scelte[nomePartita] = btn.dataset.val;
+          riga.querySelectorAll('.pick-btn').forEach(b => b.classList.toggle('selezionato', b === btn));
+          aggiornaStatoInvio();
+        });
+      });
+    });
+  }
+
+  function aggiornaStatoInvio(){
+    const totale = PARTITE.length;
+    const fatte = Object.keys(scelte).filter(k => PARTITE.includes(k)).length;
+    document.getElementById('contatore-scelte').textContent = `${fatte} / ${totale}`;
+
+    const pronto = fatte === totale;
+    const btnFallback = document.getElementById('btn-invia-fallback');
+    btnFallback.disabled = !pronto;
+    btnFallback.textContent = pronto ? '✅ Invia schedina' : `Scegli ancora ${totale - fatte}`;
+
+    if(tg){
+      tg.MainButton.setText(pronto ? '✅ INVIA SCHEDINA' : `SCEGLI ANCORA ${totale - fatte}`);
+      tg.MainButton.setParams({ color: pronto ? '#B3222B' : '#8a7c68', text_color: '#F6EFE3' });
+      if(pronto) tg.MainButton.enable(); else tg.MainButton.disable();
+    }
+  }
+
+  function inviaSchedina(){
+    const totale = PARTITE.length;
+    const fatte = Object.keys(scelte).filter(k => PARTITE.includes(k)).length;
+    if(fatte < totale) return;
+
+    if(tg){ tg.MainButton.hide(); tg.BackButton.hide(); }
+
+    costruisciRiepilogo(document.getElementById('recap-done'), PARTITE, scelte);
+    mostraSchermata('done');
+    animaTimbro('stamp-done');
+
+    const payload = { modalita: modalita || 'modalita_normale', giocate: scelte };
+
+    if(tg){
+      // Lasciamo respirare l'animazione del timbro: sendData chiude la Mini App non appena chiamato
+      setTimeout(() => {
+        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        tg.sendData(JSON.stringify(payload));
+      }, 900);
+    } else {
+      console.log('Anteprima fuori da Telegram — payload che verrebbe inviato:', payload);
+    }
+  }
+
+  document.getElementById('btn-invia-fallback').addEventListener('click', inviaSchedina);
+  if(tg) tg.MainButton.onClick(inviaSchedina);
+
+})();
+</script>
 </body>
 </html>
